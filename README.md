@@ -130,4 +130,4 @@ python eval_retrieval.py --set eval_final.json --answers     # ЭЦСИЙН: ү�
 
 ## Өгүүлэл
 
-Төслийн тайлан өгүүлэл: `paper/` [paper/paper.pdf](paper/paper.pdf).
+Төслийн тайлан: [paper/paper.pdf](paper/paper.pdf)
