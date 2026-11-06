@@ -1,0 +1,22 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Embedding cache (дахин үүснэ)
+index_cache/
+
+# Хувийн / түр файлууд
+chat_log.jsonl
+user_questions.csv
+eval_log.csv
+.env
+
+# Эх Word файл (бинар; текст хувилбар нь docs/ дотор)
+source/
+docs/*.docx
+~$*
+
+# Агентийн тохиргоо
+.claude/
+.agents/
