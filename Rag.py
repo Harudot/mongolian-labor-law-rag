@@ -229,6 +229,8 @@ SYNONYMS = {
     "гара": ["цуцл", "орхи", "сана"],
     "хоно": ["өдөр"],    # NEW: "хэдэн хоног" -> хуульд "ажлын 15 өдөр"
     "жилд": ["жил"],     # NEW: "жилд" -> хуульд "ажлын жил бүр"
+    "ороо": ["тусг"],    # "гэрээнд ороогүй" -> хуульд "гэрээнд тусгаагүй"
+    "хийл": ["гүйц", "шаар"],  # "хийлгэж болох уу" -> "гүйцэтгэхийг шаардаж болохгүй"
 }
 
 
@@ -271,17 +273,31 @@ def retrieve(question, chunks, vectors, k=None):
     q = embed([question], kind="query")[0]
     dense = vectors @ q
     if not HYBRID:
-        top = np.argsort(dense)[::-1][:k]
-        return [(chunks[i], float(dense[i])) for i in top]
-    bm = bm25_scores(question, chunks)
-    fused = np.zeros(len(chunks), dtype=np.float32)
-    for w, sc in ((W_DENSE, dense), (W_BM25, bm)):
-        order = np.argsort(sc)[::-1]
-        for rank, i in enumerate(order):
-            if sc[i] > 0 or w == W_DENSE:
-                fused[i] += w / (RRF_K + rank + 1)
-    top = np.argsort(fused)[::-1][:k]
-    return [(chunks[i], float(dense[i])) for i in top]
+        top = np.argsort(dense)[::-1]
+    else:
+        bm = bm25_scores(question, chunks)
+        fused = np.zeros(len(chunks), dtype=np.float32)
+        for w, sc in ((W_DENSE, dense), (W_BM25, bm)):
+            order = np.argsort(sc)[::-1]
+            for rank, i in enumerate(order):
+                if sc[i] > 0 or w == W_DENSE:
+                    fused[i] += w / (RRF_K + rank + 1)
+        top = np.argsort(fused)[::-1]
+
+    # Keep one representative chunk per article so one long article cannot
+    # occupy several of the candidate slots sent to the answer model.
+    hits = []
+    seen_articles = set()
+    for i in top:
+        article = chunks[i]["article"]
+        if article is not None and article in seen_articles:
+            continue
+        if article is not None:
+            seen_articles.add(article)
+        hits.append((chunks[i], float(dense[i])))
+        if len(hits) == k:
+            break
+    return hits
 
 
 # ---------- Заалтаар төвлөрүүлэх ----------
@@ -432,6 +448,9 @@ SYSTEM_PROMPT = (
     "cases, state the general limit first and mention the special case briefly. "
     "Match the exact situation in the question (for example public holiday vs weekly "
     "day off vs night work vs overtime) and cite the clause that names that situation. "
+    "For a yes/no question, answer from the clause that directly states whether the "
+    "action is allowed or prohibited; do not substitute a neighboring clause that only "
+    "explains what happens after consent. Include any exception without reversing the rule. "
     "If a clause states an exception or a condition (for example 'except', 'unless', "
     "'бусад тохиолдолд', '-аас бусад'), give the rule together with its exception; "
     "never state only the prohibition or only the permission. "
