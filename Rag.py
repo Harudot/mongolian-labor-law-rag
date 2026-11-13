@@ -413,8 +413,7 @@ def drop_special_groups(question, context):
         keep.append(line)
     return "\n".join(keep)
 
-
-# ---------- 5. Хариулт ----------
+# --------- LLM-д өгөх системийн заавар ----------
 SYSTEM_PROMPT = (
     "You are an assistant for Mongolian labor law. Use ONLY the CONTEXT. "
     "Step 1: find the exact sentence in the CONTEXT that answers the question. "
